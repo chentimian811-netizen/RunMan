@@ -88,6 +88,7 @@ public class EnemyContorller : MonoBehaviour
         Vector3 lookDir = player.position - transform.position;
         lookDir.y = 0;
         transform.rotation = Quaternion.LookRotation(lookDir);
+
         if (Vector3.Distance(transform.position, player.position) > ChaseRange)
         {
             currenteState = E_State.Chase;
@@ -96,6 +97,7 @@ public class EnemyContorller : MonoBehaviour
 
 
         AttckCoolDownTimer -= Time.deltaTime;
+
         if(AttckCoolDownTimer <= 0)
         {
             player.GetComponent<PlayerController>().TakeDamage(10);

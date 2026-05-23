@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
 
     float jumpBufferTime = 0.3f;
 
+    public Vector3 spawnPostion;
 
     public float currentHealth = 0;
     public float maxHealth = 100f;
@@ -47,7 +48,7 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
 
-        currentHealth = maxHealth; 
+        currentHealth = maxHealth;
 
         if (healthBar != null)
         {
@@ -56,6 +57,8 @@ public class PlayerController : MonoBehaviour
 
         _playerRenderer = GetComponentInChildren<Renderer>();
         _OriginalColor = _playerRenderer.material.color;
+
+        spawnPostion = transform.position;
     }
 
     private void Update()
@@ -71,11 +74,11 @@ public class PlayerController : MonoBehaviour
 
     private void PlayerAttack()
     {
-        if(Input.GetMouseButtonDown(0) && attackCooldownTimer <= 0)
+        if (Input.GetMouseButtonDown(0) && attackCooldownTimer <= 0)
         {
             Collider[] collider = Physics.OverlapSphere(transform.position + transform.forward * 0.5f, 2f);
 
-            for(int i = 0; i < collider.Length; i++)
+            for (int i = 0; i < collider.Length; i++)
             {
                 EnemyContorller enemy = collider[i].GetComponent<EnemyContorller>();
                 if (enemy != null)
@@ -153,13 +156,13 @@ public class PlayerController : MonoBehaviour
 
         CameraShake.instance?.TriggerShake();
 
-        if(healthBar != null)
+        if (healthBar != null)
         {
             healthBar.UpdateHealth(currentHealth, maxHealth);
             StartCoroutine(FalshRed());
         }
 
-        if(currentHealth <= 0)
+        if (currentHealth <= 0)
         {
             Die();
         }
@@ -170,7 +173,7 @@ public class PlayerController : MonoBehaviour
         float elapsed = 0;
         Vector3 originalScale = transform.localScale;
 
-        while(elapsed < deathDuration)
+        while (elapsed < deathDuration)
         {
             float t = elapsed / deathDuration;
 
@@ -194,5 +197,19 @@ public class PlayerController : MonoBehaviour
         }
         StartCoroutine(DeathEffect());
         Debug.Log("Íæ¼ÒËÀÍö");
+    }
+
+    public void SetVelocity(float jumpForce)
+    {
+        velocity = Mathf.Sqrt(gravity * -2f * jumpHeight);
+    }
+
+    public void ResetSpawn()
+    {
+        characterController.enabled = false;
+        transform.position = spawnPostion;
+        characterController.enabled = true;
+
+        currentHealth = maxHealth;
     }
 }

@@ -150,7 +150,7 @@ GameObject:
   - component: {fileID: 48459667}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -175,6 +175,7 @@ MonoBehaviour:
   xRotatetion: 0
   attackCooldownTimer: 0
   attackCooldownTime: 2
+  spawnPostion: {x: 0, y: 0, z: 0}
   currentHealth: 100
   maxHealth: 100
   canmeraHolder: {fileID: 1857173651}
@@ -4511,7 +4512,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Jump: 1
+  jumpForce: 10
 --- !u!65 &797530789
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5705,7 +5706,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1029785079
 Transform:
   m_ObjectHideFlags: 0
@@ -7676,6 +7677,7 @@ GameObject:
   - component: {fileID: 1387282628}
   - component: {fileID: 1387282631}
   - component: {fileID: 1387282630}
+  - component: {fileID: 1387282632}
   - component: {fileID: 1387282629}
   m_Layer: 0
   m_Name: start (1)
@@ -7714,7 +7716,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -7770,6 +7772,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1387282627}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1387282632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1387282627}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpForce: 10
 --- !u!1 &1388743035
 GameObject:
   m_ObjectHideFlags: 0
@@ -7819,7 +7834,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -10274,7 +10289,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Jump: 1
+  jumpForce: 10
 --- !u!65 &1726986765
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11385,7 +11400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Jump: 1
+  jumpForce: 10
 --- !u!65 &1935254532
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11468,6 +11483,7 @@ GameObject:
   - component: {fileID: 1937635117}
   - component: {fileID: 1937635120}
   - component: {fileID: 1937635119}
+  - component: {fileID: 1937635121}
   - component: {fileID: 1937635118}
   m_Layer: 0
   m_Name: start (2)
@@ -11506,7 +11522,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -11562,6 +11578,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1937635116}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1937635121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937635116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  jumpForce: 10
 --- !u!1 &1943276780
 GameObject:
   m_ObjectHideFlags: 0
@@ -11682,7 +11711,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efdb064356951c847983bd4e72e1d6ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Jump: 1
+  jumpForce: 10
 --- !u!65 &1991732154
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11817,7 +11846,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

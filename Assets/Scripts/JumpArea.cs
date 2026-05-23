@@ -4,18 +4,17 @@ using UnityEngine;
 
 public class JumpArea : MonoBehaviour
 {
-    public bool Jump = true;
+    public float jumpForce = 10f;
 
     private void OnTriggerEnter(Collider other)
     {
         if(other.tag == "Player")
         {
-            //    if (Jump)
-            //    {
-            //         = GetComponent<Rigidbody>();
-
-            //        Rigidbody.
-            //    }
+            PlayerController player = other.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                player.SetVelocity(jumpForce);
+            }
         }
     }
 }
