@@ -1,0 +1,45 @@
+# Unity.gitignore - Standard Template
+
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Unity cache and temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Visual Studio / Rider
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.userprefs
+*.suo
+*.csproj
+*.unityproj
+*.sln
+*.pidb
+
+# MonoDevelop
+*.userprefs
+
+# JetBrains Rider
+.idea/
+*.pidb
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Unity Package Manager
+Packages/packages-lock.json
+!Packages/manifest.json
