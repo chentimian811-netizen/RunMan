@@ -1,9 +1,6 @@
-using System;
+using HPSocket.Base;
+using Mirror;
 using System.Collections;
-using System.Collections.Generic;
-//using System.Drawing;
-using Unity.PlasticSCM.Editor.WebApi;
-using Unity.VisualScripting;
 using UnityEngine;
 
 enum E_State
@@ -12,7 +9,7 @@ enum E_State
     Chase,
     Attack,
 }
-public class EnemyContorller : MonoBehaviour
+public class EnemyContorller : NetworkBehaviour
 {
     public float moveSpeed = 3f;
 
@@ -22,18 +19,22 @@ public class EnemyContorller : MonoBehaviour
     public float AttckCoolDownTimer = 0f;
     public float AttackCoolDownTime = 2f;
 
+    [SyncVar(hook =nameof(OnHealthChanged))]
     public float currentHealth = 0f;
 
     public float maxHealth = 50f;
 
     public float deathDuration = 0.5f;
 
-    public Transform piontA;
-    public Transform piontB;
+    //public Transform piontA;
+    //public Transform piontB;
 
     public Transform player;
+    Vector3 piontA;
+    Vector3 piontB;
+    Vector3 targetPiont;
 
-    Transform targetPiont;
+    //Transform targetPiont;
 
     CharacterController characterController;
 
@@ -46,13 +47,22 @@ public class EnemyContorller : MonoBehaviour
     public GameObject deathParticlePrefab;
 
     E_State currenteState = E_State.Patrol;
+    private float findPlayerTimer = 0f;
+
 
     void Start()
     {
         characterController = GetComponent<CharacterController>();
 
+
+        // 直接在 Prefab 里拖子物体，或用代码找：
+        piontA = transform.position + Vector3.left * 5f;
+        piontB = transform.position + Vector3.right * 5f;
         targetPiont = piontA;
 
+
+        Invoke(nameof(FindPlayer), 0.5f);  // 延迟等玩家生成
+        
         currentHealth = maxHealth;
 
         if(healthBar != null)
@@ -68,6 +78,17 @@ public class EnemyContorller : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!isServer) return;
+
+        findPlayerTimer -= Time.deltaTime;
+        if (findPlayerTimer <= 0)
+        {
+            FindPlayer();
+            findPlayerTimer = 1f;
+        }
+        if (player == null) return;
+        if (piontA == null || piontB == null) return;
+
         if (currenteState == E_State.Patrol)
         {
             Patrol();
@@ -82,6 +103,34 @@ public class EnemyContorller : MonoBehaviour
         }
 
     }
+
+    private void FindPlayer()
+    {
+        PlayerController[] players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+        float closestDistance = Mathf.Infinity;
+        Transform closestPlayer = null;
+
+        foreach (PlayerController p in players)
+        {
+            float dist = Vector3.Distance(transform.position, p.transform.position);
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                closestPlayer = p.transform;
+            }
+        }
+
+        player = closestPlayer;
+    }
+
+    private void OnHealthChanged(float oldHealth,float newHealth)
+    {
+        if(healthBar != null)
+        {
+            healthBar.UpdateHealth(newHealth, maxHealth);
+        }
+    }
+
 
     private void Attack()
     {
@@ -137,7 +186,7 @@ public class EnemyContorller : MonoBehaviour
             return;
         }
 
-        if (Vector3.Distance(targetPiont.position, transform.position) < 1.5f)
+        if (Vector3.Distance(targetPiont, transform.position) < 1.5f)
         {
             if(targetPiont == piontA)
             {
@@ -149,11 +198,11 @@ public class EnemyContorller : MonoBehaviour
             }
         }
 
-        Vector3 direction = (targetPiont.position - transform.position).normalized;
+        Vector3 direction = (targetPiont - transform.position).normalized;
 
         characterController.Move(moveSpeed * direction * Time.deltaTime);
 
-        Vector3 lookDir = targetPiont.position - transform.position;
+        Vector3 lookDir = targetPiont - transform.position;
 
         lookDir.y = 0;
 
@@ -171,13 +220,17 @@ public class EnemyContorller : MonoBehaviour
 
     internal void TakeDamage(int amount)
     {
+        if (!isServer) return;
+
         currentHealth -= amount;
-        Debug.Log("敌人受伤，当前血量:" + currentHealth);
-        if(healthBar != null)
-        {
-            healthBar.UpdateHealth(currentHealth, maxHealth);
-            StartCoroutine(FalshRed());
-        }
+
+        RpcFlashRed();
+        //Debug.Log("敌人受伤，当前血量:" + currentHealth);
+
+        //if(healthBar != null)
+        //{
+        //    healthBar.UpdateHealth(currentHealth, maxHealth);
+        //}
 
         if (currentHealth <= 0)
         {
@@ -185,6 +238,11 @@ public class EnemyContorller : MonoBehaviour
         }
     }
 
+    [ClientRpc]
+    private void RpcFlashRed()
+    {
+        StartCoroutine(FalshRed());
+    }
     private IEnumerator DeathEffect()//敌人缩小死亡效果
     {
         float elapsed = 0;
@@ -204,7 +262,7 @@ public class EnemyContorller : MonoBehaviour
             yield return null;
         }
 
-        Destroy(gameObject);
+        NetworkServer.Destroy(gameObject);
     }
 
     private void Die()

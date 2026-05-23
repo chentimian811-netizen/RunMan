@@ -1,11 +1,8 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
+using Mirror;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : NetworkBehaviour
 {
     public float speed = 5f;
 
@@ -27,9 +24,11 @@ public class PlayerController : MonoBehaviour
 
     float jumpBufferTime = 0.3f;
 
-
+    [SyncVar(hook = nameof(OnHealthChanged))]
     public float currentHealth = 0;
     public float maxHealth = 100f;
+
+
     CharacterController characterController;
 
     public Transform canmeraHolder;
@@ -56,10 +55,27 @@ public class PlayerController : MonoBehaviour
 
         _playerRenderer = GetComponentInChildren<Renderer>();
         _OriginalColor = _playerRenderer.material.color;
+
+
+        if (!isLocalPlayer)
+        {
+            Camera cam = GetComponentInChildren<Camera>();
+            if(cam != null)
+            {
+                cam.enabled = false;
+            }
+            AudioListener listener = GetComponentInChildren<AudioListener>();
+            if (listener != null)
+            {
+                listener.enabled = false;
+            }
+        }
     }
 
     private void Update()
     {
+        if (!isLocalPlayer) return;
+
         attackCooldownTimer -= Time.deltaTime;
 
         PlayerMove();
@@ -69,24 +85,37 @@ public class PlayerController : MonoBehaviour
         PlayerAttack();
     }
 
+    private void OnHealthChanged(float oldHealth,float newHealth)
+    {
+        if(healthBar != null)
+        {
+            healthBar.UpdateHealth(newHealth, maxHealth);
+        }
+    }
     private void PlayerAttack()
     {
         if(Input.GetMouseButtonDown(0) && attackCooldownTimer <= 0)
         {
-            Collider[] collider = Physics.OverlapSphere(transform.position + transform.forward * 0.5f, 2f);
-
-            for(int i = 0; i < collider.Length; i++)
-            {
-                EnemyContorller enemy = collider[i].GetComponent<EnemyContorller>();
-                if (enemy != null)
-                {
-                    enemy.TakeDamage(10);
-                }
-            }
-
+            CmdAttack();
             attackCooldownTimer = attackCooldownTime;
         }
     }
+
+    [Command]
+    private void CmdAttack()
+    {
+        Collider[] collider = Physics.OverlapSphere(transform.position + transform.forward * 0.5f, 2f);
+
+        for (int i = 0; i < collider.Length; i++)
+        {
+            EnemyContorller enemy = collider[i].GetComponent<EnemyContorller>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(10);
+            }
+        }
+    }
+
 
     private void PlCameraRotate()
     {
@@ -148,21 +177,29 @@ public class PlayerController : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
+        if (!isServer) return;
         currentHealth -= amount;
         Debug.Log("ÕÊº“ ‹…À, £”‡—™¡ø" + currentHealth);
 
-        CameraShake.instance?.TriggerShake();
+        RpcOnHit();
 
-        if(healthBar != null)
-        {
-            healthBar.UpdateHealth(currentHealth, maxHealth);
-            StartCoroutine(FalshRed());
-        }
+        //if(healthBar != null)
+        //{
+        //    healthBar.UpdateHealth(currentHealth, maxHealth);
+            
+        //}
 
         if(currentHealth <= 0)
         {
             Die();
         }
+    }
+    [ClientRpc]
+    private void RpcOnHit()
+    {
+        CameraShake shake = Camera.main.GetComponentInChildren<CameraShake>();
+        if (shake != null) shake.TriggerShake();
+        StartCoroutine(FalshRed());
     }
 
     private IEnumerator DeathEffect()
@@ -183,7 +220,7 @@ public class PlayerController : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-        //Destroy(gameObject);
+        NetworkServer.Destroy(gameObject);
     }
 
     private void Die()
