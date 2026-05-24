@@ -81,7 +81,7 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  speed: 5
+  speed: 4
   jumpHeight: 2
   velocity: 0
   gravity: -9.8

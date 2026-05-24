@@ -1,5 +1,6 @@
 using HPSocket.Base;
 using Mirror;
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -46,6 +47,9 @@ public class EnemyContorller : NetworkBehaviour
 
     public GameObject deathParticlePrefab;
 
+    private Animator animator;
+    private bool _hasTriggeredAttack;
+
     E_State currenteState = E_State.Patrol;
     private float findPlayerTimer = 0f;
 
@@ -54,6 +58,7 @@ public class EnemyContorller : NetworkBehaviour
     {
         characterController = GetComponent<CharacterController>();
 
+        animator = GetComponentInChildren<Animator>();
 
         // 直接在 Prefab 里拖子物体，或用代码找：
         piontA = transform.position + Vector3.left * 5f;
@@ -86,8 +91,12 @@ public class EnemyContorller : NetworkBehaviour
             FindPlayer();
             findPlayerTimer = 1f;
         }
-        if (player == null) return;
-        if (piontA == null || piontB == null) return;
+        if (player == null)
+        {
+            animator.SetFloat("MoveAmount", 0f);
+            return;
+        }
+        
 
         if (currenteState == E_State.Patrol)
         {
@@ -134,26 +143,37 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Attack()
     {
+        animator.SetFloat("MoveAmount", 0f);
+        if (!_hasTriggeredAttack)
+        {
+            animator.SetTrigger("Attack");
+            _hasTriggeredAttack = true;
+        }
+
         Vector3 lookDir = player.position - transform.position;
         lookDir.y = 0;
         transform.rotation = Quaternion.LookRotation(lookDir);
-        if (Vector3.Distance(transform.position, player.position) > ChaseRange)
+
+       
+
+        if (Vector3.Distance(transform.position, player.position) > attackRange * 1.5f)
         {
             currenteState = E_State.Chase;
             return;
         }
 
-
         AttckCoolDownTimer -= Time.deltaTime;
         if(AttckCoolDownTimer <= 0)
         {
-            player.GetComponent<PlayerController>().TakeDamage(10);
+            //player.GetComponent<PlayerController>().TakeDamage(10);
             AttckCoolDownTimer = AttackCoolDownTime;
+            _hasTriggeredAttack = false;
         } 
     }
 
     private void Chase()
     {
+        animator.SetFloat("MoveAmount", 1f);
         if (Vector3.Distance(player.position, transform.position) > ChaseRange * 1.2f)
         {
             currenteState = E_State.Patrol;
@@ -162,7 +182,7 @@ public class EnemyContorller : NetworkBehaviour
         else if (Vector3.Distance(player.position, transform.position) < attackRange )
         {
             currenteState = E_State.Attack;
-
+            _hasTriggeredAttack = false;
             AttckCoolDownTimer = AttackCoolDownTime;
         }
 
@@ -180,6 +200,7 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Patrol()
     {
+        animator.SetFloat("MoveAmount", 0.6f);
         if (Vector3.Distance(transform.position, player.position) < ChaseRange)
         {
             currenteState = E_State.Chase;
@@ -242,6 +263,7 @@ public class EnemyContorller : NetworkBehaviour
     private void RpcFlashRed()
     {
         StartCoroutine(FalshRed());
+        animator.SetTrigger("Hurt");
     }
     private IEnumerator DeathEffect()//敌人缩小死亡效果
     {
@@ -267,10 +289,31 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Die()
     {
+
         if(deathParticlePrefab != null)
         {
             Instantiate(deathParticlePrefab, transform.position, Quaternion.identity);
         }
+        RpcDieEffects();
+
         StartCoroutine(DeathEffect());
+        
     }
+    [ClientRpc]
+    private void RpcDieEffects()
+    {
+        animator.SetTrigger("Die");
+        animator.SetBool("isDead", true);
+    }
+    public void OnAttackHit()
+    {
+        // 只在攻击状态下才造成伤害
+        if (currenteState != E_State.Attack) return;
+        if (!isServer) return;
+        if (player == null) return;
+
+        player.GetComponent<PlayerController>().TakeDamage(10);
+        Debug.Log("🗡️ 剑砍到了！");
+    }
+
 }
