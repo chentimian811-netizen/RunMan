@@ -16,6 +16,7 @@ public class EnemyContorller : NetworkBehaviour
 
     public float ChaseRange = 10f;
 
+    public float patrolRange = 20f;  // 巡逻半径
     public float attackRange = 1.5f;
     public float AttckCoolDownTimer = 0f;
     public float AttackCoolDownTime = 2f;
@@ -39,6 +40,9 @@ public class EnemyContorller : NetworkBehaviour
 
     CharacterController characterController;
 
+    private float patrolTimer;          // 巡逻计时器
+    private float patrolStuckTime = 5f; // 超过5秒没到就换点
+
     [SerializeField] private HealthBarController healthBar;
 
     private Renderer _enemyRenderer;
@@ -50,7 +54,11 @@ public class EnemyContorller : NetworkBehaviour
     private Animator animator;
     private bool _hasTriggeredAttack;
 
+    [SyncVar]
     E_State currenteState = E_State.Patrol;
+
+    [SyncVar] private bool attackTriggeredSync;
+    private bool lastAttackTriggered;
     private float findPlayerTimer = 0f;
 
 
@@ -61,14 +69,17 @@ public class EnemyContorller : NetworkBehaviour
         animator = GetComponentInChildren<Animator>();
 
         // 直接在 Prefab 里拖子物体，或用代码找：
-        piontA = transform.position + Vector3.left * 5f;
-        piontB = transform.position + Vector3.right * 5f;
+        piontA = transform.position + new Vector3(UnityEngine.Random.Range(-patrolRange, patrolRange), 0, UnityEngine.Random.Range(-patrolRange, patrolRange));
+        piontB = transform.position + new Vector3(UnityEngine.Random.Range(-patrolRange, patrolRange), 0, UnityEngine.Random.Range(-patrolRange, patrolRange));
         targetPiont = piontA;
 
 
         Invoke(nameof(FindPlayer), 0.5f);  // 延迟等玩家生成
         
-        currentHealth = maxHealth;
+        if (isServer)
+        {
+            currentHealth = maxHealth;
+        }
 
         if(healthBar != null)
         {
@@ -83,34 +94,58 @@ public class EnemyContorller : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!isServer) return;
+        if (isServer)
+        {
+            findPlayerTimer -= Time.deltaTime;
+            if (findPlayerTimer <= 0)
+            {
+                FindPlayer();
+                findPlayerTimer = 1f;
+            }
+            if (player == null)
+            {
+                return;
+            }
 
-        findPlayerTimer -= Time.deltaTime;
-        if (findPlayerTimer <= 0)
-        {
-            FindPlayer();
-            findPlayerTimer = 1f;
-        }
-        if (player == null)
-        {
-            animator.SetFloat("MoveAmount", 0f);
-            return;
-        }
-        
-
-        if (currenteState == E_State.Patrol)
-        {
-            Patrol();
-        }
-        else if (currenteState == E_State.Chase)
-        {
-            Chase();
-        }
-        else if (currenteState == E_State.Attack)
-        {
-            Attack();
+            if (currenteState == E_State.Patrol)
+            {
+                Patrol();
+            }
+            else if (currenteState == E_State.Chase)
+            {
+                Chase();
+            }
+            else if (currenteState == E_State.Attack)
+            {
+                Attack();
+            }
         }
 
+        // 双方都执行：根据 state 播放动画
+        UpdateAnimation();
+    }
+
+    private void UpdateAnimation()
+    {
+        if (animator == null) return;
+
+        switch (currenteState)
+        {
+            case E_State.Patrol:
+                animator.SetFloat("MoveAmount", 0.6f);
+                break;
+            case E_State.Chase:
+                animator.SetFloat("MoveAmount", 1f);
+                break;
+            case E_State.Attack:
+                animator.SetFloat("MoveAmount", 0f);
+                if (attackTriggeredSync && !lastAttackTriggered)
+                {
+                    animator.SetTrigger("Attack");
+                }
+                lastAttackTriggered = attackTriggeredSync;
+                break;
+        }
     }
 
     private void FindPlayer()
@@ -143,10 +178,9 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Attack()
     {
-        animator.SetFloat("MoveAmount", 0f);
         if (!_hasTriggeredAttack)
         {
-            animator.SetTrigger("Attack");
+            attackTriggeredSync = !attackTriggeredSync;
             _hasTriggeredAttack = true;
         }
 
@@ -173,7 +207,6 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Chase()
     {
-        animator.SetFloat("MoveAmount", 1f);
         if (Vector3.Distance(player.position, transform.position) > ChaseRange * 1.2f)
         {
             currenteState = E_State.Patrol;
@@ -200,35 +233,33 @@ public class EnemyContorller : NetworkBehaviour
 
     private void Patrol()
     {
-        animator.SetFloat("MoveAmount", 0.6f);
         if (Vector3.Distance(transform.position, player.position) < ChaseRange)
         {
             currenteState = E_State.Chase;
             return;
         }
 
-        if (Vector3.Distance(targetPiont, transform.position) < 1.5f)
+        float distToTarget = Vector3.Distance(targetPiont, transform.position);
+
+        // 到达巡逻点 或 卡住超时 → 换新点
+        if (distToTarget < 2.5f || patrolTimer > patrolStuckTime)
         {
-            if(targetPiont == piontA)
-            {
-                targetPiont = piontB;
-            }
-            else
-            {
-                targetPiont = piontA;
-            }
+            targetPiont = transform.position + new Vector3(
+                UnityEngine.Random.Range(-patrolRange, patrolRange),
+                0,
+                UnityEngine.Random.Range(-patrolRange, patrolRange));
+            patrolTimer = 0f;
         }
+
+        patrolTimer += Time.deltaTime;
 
         Vector3 direction = (targetPiont - transform.position).normalized;
 
         characterController.Move(moveSpeed * direction * Time.deltaTime);
 
         Vector3 lookDir = targetPiont - transform.position;
-
         lookDir.y = 0;
-
         transform.rotation = Quaternion.LookRotation(lookDir);
-
     }
 
     private IEnumerator FalshRed()

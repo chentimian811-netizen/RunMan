@@ -200,7 +200,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   moveSpeed: 3
-  ChaseRange: 10
+  ChaseRange: 15
+  patrolRange: 20
   attackRange: 1.5
   AttckCoolDownTimer: 0
   AttackCoolDownTime: 2

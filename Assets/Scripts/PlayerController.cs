@@ -39,14 +39,21 @@ public class PlayerController : NetworkBehaviour
     private Color _OriginalColor;
     public float falshDuration;
 
+    private Animator animator;
+
     [SerializeField] private HealthBarController healthBar;
+
+    public int collectibles = 0;
 
     public GameObject deathParticlePrefab;
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
 
-        currentHealth = maxHealth; 
+        if (isServer)
+        {
+            currentHealth = maxHealth; 
+        }
 
         if (healthBar != null)
         {
@@ -55,6 +62,8 @@ public class PlayerController : NetworkBehaviour
 
         _playerRenderer = GetComponentInChildren<Renderer>();
         _OriginalColor = _playerRenderer.material.color;
+
+        animator = GetComponentInChildren<Animator>();
 
 
         if (!isLocalPlayer)
@@ -75,6 +84,10 @@ public class PlayerController : NetworkBehaviour
     private void Update()
     {
         if (!isLocalPlayer) return;
+
+        // 菜单打开时，冻结玩家操作
+        if (MenuController.instance != null && MenuController.instance.IsMenuOpen)
+            return;
 
         attackCooldownTimer -= Time.deltaTime;
 
@@ -163,6 +176,23 @@ public class PlayerController : NetworkBehaviour
             velocity = -2f;
         }
 
+        if(animator != null)
+        {
+            // Speed = z 原始输入：正数=向前，负数=向后
+            // State Machine: Speed>0.1→Locomotion(向前), Speed<-0.1→WalkBack(向后)
+            animator.SetFloat("Speed", z);
+
+            // Direction 只在向前移动时有意义（Locomotion Blend Tree）
+            if(z > 0.01f)
+            {
+                float angle = Mathf.Atan2(x, z) * Mathf.Rad2Deg;
+                animator.SetFloat("Direction", angle / 180f);
+            }
+
+            animator.SetBool("Jump", !characterController.isGrounded);
+        }
+
+
         characterController.Move(move);
 
     }
@@ -179,7 +209,7 @@ public class PlayerController : NetworkBehaviour
     {
         if (!isServer) return;
         currentHealth -= amount;
-        Debug.Log("�������,ʣ��Ѫ��" + currentHealth);
+        Debug.Log("�������,ʣ��Ѫ��" + currentHealth);
 
         RpcOnHit();
 
@@ -197,6 +227,8 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     private void RpcOnHit()
     {
+        if (!isOwned) return;  // 只让被打的玩家本地震动
+
         CameraShake shake = Camera.main.GetComponentInChildren<CameraShake>();
         if (shake != null) shake.TriggerShake();
         StartCoroutine(FalshRed());
@@ -223,13 +255,13 @@ public class PlayerController : NetworkBehaviour
         NetworkServer.Destroy(gameObject);
     }
 
-    private void Die()
+    public void Die()
     {
         if (deathParticlePrefab != null)
         {
             Instantiate(deathParticlePrefab, transform.position, Quaternion.identity);
         }
         StartCoroutine(DeathEffect());
-        Debug.Log("�������");
+        Debug.Log("�������");
     }
 }
