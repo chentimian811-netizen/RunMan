@@ -81,17 +81,14 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  speed: 20
+  speed: 3
   jumpHeight: 1.5
   velocity: 0
   gravity: -9.8
-  senstivity: 3
-  xRotatetion: 0
   attackCooldownTimer: 0
   attackCooldownTime: 2
   currentHealth: 100
   maxHealth: 100
-  canmeraHolder: {fileID: 9002547266738149277}
   deathDuration: 0.5
   falshDuration: 0.3
   healthBar: {fileID: 503341526163310493}
@@ -504,7 +501,7 @@ RectTransform:
   m_GameObject: {fileID: 7970811838517850562}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.03, y: 0.003, z: 1}
+  m_LocalScale: {x: 0.013364109, y: 0.0013364109, z: 0.44547027}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8583289213017808705}
@@ -512,7 +509,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 2.7420025}
+  m_AnchoredPosition: {x: 0.0016479, y: 2.7420025}
   m_SizeDelta: {x: 0.5, y: 0.15}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &6408338783574859605

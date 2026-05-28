@@ -1,22 +1,38 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Mirror;
+using TMPro;
 
 public class MenuController : MonoBehaviour
 {
     public static MenuController instance;
 
     [Header("启动菜单")]
-    [SerializeField] private GameObject menuPanel;     // 整个菜单 Panel
+    [SerializeField] private GameObject menuPanel;
     [SerializeField] private Button hostBtn;
     [SerializeField] private Button joinBtn;
     [SerializeField] private Button quitBtn;
-    [SerializeField] private InputField ipInput;       // 默认 "localhost"
+
+    [Header("Host 弹窗")]
+    [SerializeField] private GameObject hostPopupPanel;
+    [SerializeField] private TMP_InputField roomPasswordInput;
+    [SerializeField] private Button confirmHostBtn;
+    [SerializeField] private Button cancelHostBtn;
+
+    [Header("Join 弹窗")]
+    [SerializeField] private GameObject joinPopupPanel;
+    [SerializeField] private TMP_InputField joinIpInput;
+    [SerializeField] private TMP_InputField joinPasswordInput;
+    [SerializeField] private Button confirmJoinBtn;
+    [SerializeField] private Button cancelJoinBtn;
+
+    [Header("游戏内HUD")]
+    [SerializeField] private GameObject gameHUDPanel;
 
     [Header("游戏内暂停菜单")]
-    [SerializeField] private GameObject pausePanel;    // 暂停菜单 Panel
-    [SerializeField] private Button resumeBtn;        // 回到游戏按钮
-    [SerializeField] private Button exitGameBtn;      // 退出游戏按钮
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private Button resumeBtn;
+    [SerializeField] private Button exitGameBtn;
 
     public bool IsMenuOpen => menuPanel.activeSelf || (pausePanel != null && pausePanel.activeSelf);
 
@@ -24,111 +40,147 @@ public class MenuController : MonoBehaviour
     {
         instance = this;
 
-        // 游戏启动 → 显示启动菜单，场景画面在后面作为背景
         menuPanel.SetActive(true);
-        
-        // 确保暂停菜单初始隐藏
-        if (pausePanel != null)
-            pausePanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
+        if (gameHUDPanel != null) gameHUDPanel.SetActive(false);
+        hostPopupPanel.SetActive(false);
+        joinPopupPanel.SetActive(false);
 
         hostBtn.onClick.AddListener(OnHost);
         joinBtn.onClick.AddListener(OnJoin);
         quitBtn.onClick.AddListener(OnQuit);
-        
+
+        confirmHostBtn.onClick.AddListener(OnConfirmHost);
+        cancelHostBtn.onClick.AddListener(OnCancelPopup);
+        confirmJoinBtn.onClick.AddListener(OnConfirmJoin);
+        cancelJoinBtn.onClick.AddListener(OnCancelPopup);
+
         if (resumeBtn != null)
             resumeBtn.onClick.AddListener(OnResume);
         if (exitGameBtn != null)
             exitGameBtn.onClick.AddListener(OnExitGame);
 
-        ipInput.text = "localhost";
-        
-        // 启动时显示鼠标
         SetCursorState(true);
     }
 
     private void Update()
     {
-        // ESC 键处理
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            // 如果已连接（游戏进行中），显示暂停菜单
             if (NetworkServer.active || NetworkClient.active)
             {
                 if (!pausePanel.activeSelf)
                 {
                     pausePanel.SetActive(true);
-                    SetCursorState(true);  // 显示并解锁鼠标
+                    SetCursorState(true);
                 }
                 else
                 {
-                    // 如果暂停菜单已经打开，按ESC回到游戏
                     OnResume();
                 }
             }
-            // 如果未连接，显示启动菜单
             else
             {
-                if (!menuPanel.activeSelf)
+                if (hostPopupPanel.activeSelf || joinPopupPanel.activeSelf)
+                {
+                    OnCancelPopup();
+                }
+                else if (!menuPanel.activeSelf)
                 {
                     menuPanel.SetActive(true);
-                    SetCursorState(true);  // 显示并解锁鼠标
+                    SetCursorState(true);
                 }
             }
         }
-        
-        // 断开连接后重新显示启动菜单
+
         if (!NetworkServer.active && !NetworkClient.active)
         {
             if (pausePanel.activeSelf)
                 pausePanel.SetActive(false);
-                
-            if (!menuPanel.activeSelf)
+
+            if (!menuPanel.activeSelf && !hostPopupPanel.activeSelf && !joinPopupPanel.activeSelf)
                 menuPanel.SetActive(true);
-            
-            // 断开连接时显示鼠标
+
             SetCursorState(true);
         }
     }
 
     private void OnHost()
     {
-        NetworkManager.singleton.StartHost();
         menuPanel.SetActive(false);
+        hostPopupPanel.SetActive(true);
+        roomPasswordInput.text = "";
+    }
+
+    private void OnConfirmHost()
+    {
+        RoomAuthenticator authenticator = NetworkManager.singleton.GetComponent<RoomAuthenticator>();
+        if (authenticator != null)
+        {
+            authenticator.roomPassword = roomPasswordInput.text;
+            authenticator.SetClientPassword(roomPasswordInput.text);
+        }
+
+        NetworkManager.singleton.StartHost();
+        hostPopupPanel.SetActive(false);
+        if (gameHUDPanel != null) gameHUDPanel.SetActive(true);
         SetCursorState(false);
     }
 
     private void OnJoin()
     {
-        if (!string.IsNullOrEmpty(ipInput.text))
-            NetworkManager.singleton.networkAddress = ipInput.text;
+        menuPanel.SetActive(false);
+        joinPopupPanel.SetActive(true);
+        joinIpInput.text = "localhost";
+        joinPasswordInput.text = "";
+    }
+
+    private void OnConfirmJoin()
+    {
+        if (string.IsNullOrEmpty(joinIpInput.text))
+        {
+            Debug.LogWarning("请输入IP地址");
+            return;
+        }
+
+        NetworkManager.singleton.networkAddress = joinIpInput.text;
+
+        RoomAuthenticator authenticator = NetworkManager.singleton.GetComponent<RoomAuthenticator>();
+        if (authenticator != null)
+        {
+            authenticator.SetClientPassword(joinPasswordInput.text);
+        }
 
         NetworkManager.singleton.StartClient();
-        menuPanel.SetActive(false);
+        joinPopupPanel.SetActive(false);
+        if (gameHUDPanel != null) gameHUDPanel.SetActive(true);
         SetCursorState(false);
+    }
+
+    private void OnCancelPopup()
+    {
+        hostPopupPanel.SetActive(false);
+        joinPopupPanel.SetActive(false);
+        menuPanel.SetActive(true);
     }
 
     private void OnResume()
     {
-        // 回到游戏：隐藏暂停菜单
         pausePanel.SetActive(false);
-        SetCursorState(false);  // 隐藏并锁定鼠标
+        SetCursorState(false);
     }
 
     private void OnExitGame()
     {
-        // 退出游戏：停止网络连接，显示启动菜单
         if (NetworkServer.active)
-        {
             NetworkManager.singleton.StopHost();
-        }
         else if (NetworkClient.active)
-        {
             NetworkManager.singleton.StopClient();
-        }
-        
+
         pausePanel.SetActive(false);
+        if (gameHUDPanel != null) gameHUDPanel.SetActive(false);
         menuPanel.SetActive(true);
-        SetCursorState(true);  // 显示并解锁鼠标
+        SetCursorState(true);
     }
 
     private void OnQuit()
@@ -139,10 +191,6 @@ public class MenuController : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// 设置鼠标状态
-    /// </summary>
-    /// <param name="visible">true=显示并解锁, false=隐藏并锁定</param>
     private void SetCursorState(bool visible)
     {
         Cursor.visible = visible;

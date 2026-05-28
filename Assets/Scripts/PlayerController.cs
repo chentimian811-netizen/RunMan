@@ -12,10 +12,6 @@ public class PlayerController : NetworkBehaviour
 
     public float gravity = -9.8f;
 
-    public float senstivity = 3f;
-
-    public float xRotatetion;
-
     public float attackCooldownTimer = 0f;
 
     public float attackCooldownTime = 1.5f;
@@ -30,8 +26,6 @@ public class PlayerController : NetworkBehaviour
 
 
     CharacterController characterController;
-
-    public Transform canmeraHolder;
 
     public float deathDuration = 0.5f;
 
@@ -79,6 +73,14 @@ public class PlayerController : NetworkBehaviour
                 listener.enabled = false;
             }
         }
+        else
+        {
+            Transform holder = transform.Find("CameraHolder");
+            if (holder != null && holder.GetComponent<ThirdPersonCameraController>() == null)
+            {
+                holder.gameObject.AddComponent<ThirdPersonCameraController>();
+            }
+        }
     }
 
     private void Update()
@@ -92,8 +94,6 @@ public class PlayerController : NetworkBehaviour
         attackCooldownTimer -= Time.deltaTime;
 
         PlayerMove();
-
-        PlCameraRotate();
 
         PlayerAttack();
     }
@@ -130,19 +130,6 @@ public class PlayerController : NetworkBehaviour
     }
 
 
-    private void PlCameraRotate()
-    {
-        float mouseX = Input.GetAxis("Mouse X");
-        float mouseY = Input.GetAxis("Mouse Y");
-
-        transform.Rotate(Vector3.up, mouseX * senstivity);
-
-        xRotatetion -= mouseY * senstivity;
-        xRotatetion = Mathf.Clamp(xRotatetion, -80f, 80f);
-        canmeraHolder.localRotation = Quaternion.Euler(xRotatetion, 0, 0);
-
-    }
-
     private void PlayerMove()
     {
         float x = Input.GetAxis("Horizontal");
@@ -151,6 +138,14 @@ public class PlayerController : NetworkBehaviour
         Vector3 move = transform.right * x + transform.forward * z;
 
         move = move * speed * Time.deltaTime;
+
+        if (characterController.isGrounded)
+        {
+            if (Physics.Raycast(transform.position + Vector3.up * 0.05f, Vector3.down, out RaycastHit hit, 1f))
+            {
+                move = Vector3.ProjectOnPlane(move, hit.normal);
+            }
+        }
 
         velocity += gravity * Time.deltaTime;
 
@@ -165,7 +160,6 @@ public class PlayerController : NetworkBehaviour
             jumpBufferTimer -= Time.deltaTime;
         }
 
-
         if (jumpBufferTimer > 0 && characterController.isGrounded)
         {
             velocity = Mathf.Sqrt(gravity * -2f * jumpHeight);
@@ -178,11 +172,8 @@ public class PlayerController : NetworkBehaviour
 
         if(animator != null)
         {
-            // Speed = z 原始输入：正数=向前，负数=向后
-            // State Machine: Speed>0.1→Locomotion(向前), Speed<-0.1→WalkBack(向后)
             animator.SetFloat("Speed", z);
 
-            // Direction 只在向前移动时有意义（Locomotion Blend Tree）
             if(z > 0.01f)
             {
                 float angle = Mathf.Atan2(x, z) * Mathf.Rad2Deg;
