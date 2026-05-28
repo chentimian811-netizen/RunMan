@@ -13,6 +13,7 @@ enum E_State
 public class EnemyContorller : NetworkBehaviour
 {
     public float moveSpeed = 3f;
+    public float rotationSpeed = 720f;
 
     public float ChaseRange = 10f;
 
@@ -88,7 +89,6 @@ public class EnemyContorller : NetworkBehaviour
 
         _enemyRenderer = GetComponentInChildren<Renderer>();
         _OriginalColor = _enemyRenderer.material.color;
-
     }
 
     // Update is called once per frame
@@ -107,22 +107,29 @@ public class EnemyContorller : NetworkBehaviour
                 return;
             }
 
-            if (currenteState == E_State.Patrol)
-            {
-                Patrol();
-            }
-            else if (currenteState == E_State.Chase)
-            {
-                Chase();
-            }
-            else if (currenteState == E_State.Attack)
-            {
-                Attack();
-            }
+            UpdateState();
         }
 
         // 双方都执行：根据 state 播放动画
         UpdateAnimation();
+    }
+
+    void FixedUpdate()
+    {
+        if (!isServer || player == null) return;
+
+        if (currenteState == E_State.Patrol)
+        {
+            Patrol();
+        }
+        else if (currenteState == E_State.Chase)
+        {
+            Chase();
+        }
+        else if (currenteState == E_State.Attack)
+        {
+            Attack();
+        }
     }
 
     private void UpdateAnimation()
@@ -175,73 +182,77 @@ public class EnemyContorller : NetworkBehaviour
         }
     }
 
+    private void UpdateState()
+    {
+        if (currenteState == E_State.Patrol)
+        {
+            if (Vector3.Distance(transform.position, player.position) < ChaseRange)
+            {
+                currenteState = E_State.Chase;
+            }
+        }
+        else if (currenteState == E_State.Chase)
+        {
+            float dist = Vector3.Distance(player.position, transform.position);
+            if (dist > ChaseRange * 1.2f)
+            {
+                currenteState = E_State.Patrol;
+            }
+            else if (dist < attackRange)
+            {
+                currenteState = E_State.Attack;
+                _hasTriggeredAttack = false;
+                AttckCoolDownTimer = AttackCoolDownTime;
+            }
+        }
+        else if (currenteState == E_State.Attack)
+        {
+            if (Vector3.Distance(transform.position, player.position) > attackRange * 1.5f)
+            {
+                currenteState = E_State.Chase;
+            }
+            else
+            {
+                if (!_hasTriggeredAttack)
+                {
+                    attackTriggeredSync = !attackTriggeredSync;
+                    _hasTriggeredAttack = true;
+                }
+
+                AttckCoolDownTimer -= Time.deltaTime;
+                if (AttckCoolDownTimer <= 0)
+                {
+                    AttckCoolDownTimer = AttackCoolDownTime;
+                    _hasTriggeredAttack = false;
+                }
+            }
+        }
+    }
+
 
     private void Attack()
     {
-        if (!_hasTriggeredAttack)
-        {
-            attackTriggeredSync = !attackTriggeredSync;
-            _hasTriggeredAttack = true;
-        }
-
         Vector3 lookDir = player.position - transform.position;
         lookDir.y = 0;
-        transform.rotation = Quaternion.LookRotation(lookDir);
-
-       
-
-        if (Vector3.Distance(transform.position, player.position) > attackRange * 1.5f)
-        {
-            currenteState = E_State.Chase;
-            return;
-        }
-
-        AttckCoolDownTimer -= Time.deltaTime;
-        if(AttckCoolDownTimer <= 0)
-        {
-            //player.GetComponent<PlayerController>().TakeDamage(10);
-            AttckCoolDownTimer = AttackCoolDownTime;
-            _hasTriggeredAttack = false;
-        } 
+        if (lookDir.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(lookDir), rotationSpeed * Time.fixedDeltaTime);
     }
 
     private void Chase()
     {
-        if (Vector3.Distance(player.position, transform.position) > ChaseRange * 1.2f)
-        {
-            currenteState = E_State.Patrol;
-            return;
-        }
-        else if (Vector3.Distance(player.position, transform.position) < attackRange )
-        {
-            currenteState = E_State.Attack;
-            _hasTriggeredAttack = false;
-            AttckCoolDownTimer = AttackCoolDownTime;
-        }
-
         Vector3 direction = (player.position - transform.position).normalized;
-
-        characterController.Move(direction * moveSpeed * Time.deltaTime);
+        characterController.Move(direction * moveSpeed * Time.fixedDeltaTime);
 
         Vector3 lookDir = player.position - transform.position;
-
         lookDir.y = 0;
-
-        transform.rotation = Quaternion.LookRotation(lookDir);
-
+        if (lookDir.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(lookDir), rotationSpeed * Time.fixedDeltaTime);
     }
 
     private void Patrol()
     {
-        if (Vector3.Distance(transform.position, player.position) < ChaseRange)
-        {
-            currenteState = E_State.Chase;
-            return;
-        }
-
         float distToTarget = Vector3.Distance(targetPiont, transform.position);
 
-        // 到达巡逻点 或 卡住超时 → 换新点
         if (distToTarget < 2.5f || patrolTimer > patrolStuckTime)
         {
             targetPiont = transform.position + new Vector3(
@@ -251,15 +262,15 @@ public class EnemyContorller : NetworkBehaviour
             patrolTimer = 0f;
         }
 
-        patrolTimer += Time.deltaTime;
+        patrolTimer += Time.fixedDeltaTime;
 
         Vector3 direction = (targetPiont - transform.position).normalized;
-
-        characterController.Move(moveSpeed * direction * Time.deltaTime);
+        characterController.Move(moveSpeed * direction * Time.fixedDeltaTime);
 
         Vector3 lookDir = targetPiont - transform.position;
         lookDir.y = 0;
-        transform.rotation = Quaternion.LookRotation(lookDir);
+        if (lookDir.sqrMagnitude > 0.001f)
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(lookDir), rotationSpeed * Time.fixedDeltaTime);
     }
 
     private IEnumerator FalshRed()

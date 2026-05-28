@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 6703470972880979244}
   - component: {fileID: 679861247731873724}
   - component: {fileID: -5110594751257662016}
+  - component: {fileID: 457090445851812432}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -200,6 +201,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   moveSpeed: 3
+  rotationSpeed: 720
   ChaseRange: 15
   patrolRange: 20
   attackRange: 1.5
@@ -246,11 +248,11 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   target: {fileID: 3505122905679185404}
-  updateMethod: 0
+  updateMethod: 1
   syncPosition: 1
   syncRotation: 1
   syncScale: 0
-  onlySyncOnChange: 1
+  onlySyncOnChange: 0
   compressRotation: 1
   interpolatePosition: 1
   interpolateRotation: 1
@@ -266,6 +268,24 @@ MonoBehaviour:
   rotationPrecision: 0.001
   scalePrecision: 0.01
   debugDraw: 0
+--- !u!114 &457090445851812432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3829287411582880218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f6f3bf89aa97405989c802ba270f815, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncMethod: 0
+  syncDirection: 1
+  syncMode: 0
+  syncInterval: 0
+  clientAuthority: 0
+  animator: {fileID: 3115144180378723546}
 --- !u!1 &5458351560065384339
 GameObject:
   m_ObjectHideFlags: 0
@@ -612,6 +632,11 @@ PrefabInstance:
 --- !u!4 &434125964685691349 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2468889828458600031, guid: 4a46e821c58b5cd42b14eaab6d197266, type: 3}
+  m_PrefabInstance: {fileID: 2613514349041737610}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &3115144180378723546 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 1116371902028168016, guid: 4a46e821c58b5cd42b14eaab6d197266, type: 3}
   m_PrefabInstance: {fileID: 2613514349041737610}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &3731600914460912359 stripped
